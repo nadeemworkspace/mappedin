@@ -216,6 +216,7 @@ extension ViewController {
 }
 
 // MARK: NAVIGATION PATH
+// MARK: ITERATION 1 (SINGLE POINT NAVIGATION)
 extension ViewController {
 
 //    func testNavigation() {
@@ -264,84 +265,286 @@ extension ViewController {
 //        }
 //    }
 
+//    func testNavigation() {
+//
+//        let shoppingList = [
+//            "Mop",
+//            "Lotion",
+//            "Sugar",
+//        ]
+//
+//        mapView.mapData.getByType(.mapObject) {
+//            (result: Result<[MapObject], Error>) in
+//
+//            guard case .success(let objects) = result else {
+//                return
+//            }
+//
+//            let resolvedObjects = shoppingList.compactMap { item in
+//                objects.first {
+//                    $0.name.caseInsensitiveCompare(item) == .orderedSame
+//                }
+//            }
+//
+//            guard resolvedObjects.count == shoppingList.count else {
+//                print("Some products could not be resolved")
+//                return
+//            }
+//
+//            guard let startObject = resolvedObjects.first else {
+//                return
+//            }
+//
+//            let startTarget: NavigationTarget =
+//                .mapObject(startObject)
+//
+//            let destinations: [MultiDestinationTarget] =
+//                resolvedObjects
+//                    .dropFirst()
+//                    .map {
+//                        .single(.mapObject($0))
+//                    }
+//
+//            self.mapView.mapData.getDirectionsMultiDestination(
+//                from: startTarget,
+//                to: destinations
+//            ) { [weak self] result in
+//
+//                guard let self else { return }
+//
+//                switch result {
+//
+//                case .success(let directionsList):
+//
+//                    let pathOption = AddPathOptions(
+//                        accentColor: "#ffffff",
+//                        animateArrowsOnPath: true,
+//                        animateDrawing: true,
+//                        color: "#4b90e2",
+//                        displayArrowsOnPath: true
+//                    )
+//
+//                    let options = NavigationOptions(
+//                        pathOptions: pathOption
+//                    )
+//
+//                    guard let directionsList, !directionsList.isEmpty else {
+//                        print("No Directions")
+//                        return
+//                    }
+//
+//                    self.mapView.navigation.draw(
+//                        directions: directionsList,
+//                        options: options
+//                    ) { drawResult in
+//
+//                        print("Path Drawn:", drawResult)
+//                    }
+//
+//                case .failure(let error):
+//                    print(error)
+//                }
+//            }
+//        }
+//    }
+
+}
+
+// MARK: ITERATION 2 (MULTIPLE DESTINATION NAVIGATION)
+extension ViewController {
+
+    func navigationTarget(for item: RouteItem) -> NavigationTarget {
+        switch item {
+        case .mapObject(let object):
+            return .mapObject(object)
+        case .space(let space):
+            return .space(space)
+        }
+    }
+
+    func distance(from: RouteItem, to: RouteItem) async -> Double {
+        await withCheckedContinuation { continuation in
+            mapView.mapData.getDistance(from: navigationTarget(for: from), to: navigationTarget(for: to)) { result in
+                switch result {
+                case .success(let distance):
+                    continuation.resume(
+                        returning: distance ?? .greatestFiniteMagnitude
+                    )
+                case .failure:
+                    continuation.resume(
+                        returning: .greatestFiniteMagnitude
+                    )
+                }
+            }
+        }
+    }
+
+    func optimizeRoute(items: [RouteItem]) async -> [RouteItem] {
+
+        guard items.count > 1 else {
+            return items
+        }
+
+        var optimized: [RouteItem] = []
+
+        var remaining = items
+
+        let first = remaining.removeFirst()
+
+        optimized.append(first)
+
+        var current = first
+
+        while !remaining.isEmpty {
+
+            var nearestIndex = 0
+            var nearestDistance = Double.greatestFiniteMagnitude
+
+            for (index, candidate) in remaining.enumerated() {
+
+                let distance = await distance(
+                    from: current,
+                    to: candidate
+                )
+
+                if distance < nearestDistance {
+
+                    nearestDistance = distance
+                    nearestIndex = index
+                }
+            }
+
+            let next = remaining.remove(at: nearestIndex)
+
+            optimized.append(next)
+
+            current = next
+        }
+
+        return optimized
+    }
+
     func testNavigation() {
 
         let shoppingList = [
             "Mop",
             "Lotion",
             "Sugar",
+            "☕️ Cafe"
         ]
 
-        mapView.mapData.getByType(.mapObject) {
-            (result: Result<[MapObject], Error>) in
+        mapView.mapData.getByType(.mapObject) { [weak self] (objectResult: Result<[MapObject], Error>) in
 
-            guard case .success(let objects) = result else {
+            guard let self else { return }
+
+            guard case .success(let objects) = objectResult else {
                 return
             }
 
-            let resolvedObjects = shoppingList.compactMap { item in
-                objects.first {
-                    $0.name.caseInsensitiveCompare(item) == .orderedSame
+            self.mapView.mapData.getByType(.space) { (spaceResult: Result<[Space], Error>) in
+
+                guard case .success(let spaces) = spaceResult else {
+                    return
                 }
-            }
 
-            guard resolvedObjects.count == shoppingList.count else {
-                print("Some products could not be resolved")
-                return
-            }
+                Task {
 
-            guard let startObject = resolvedObjects.first else {
-                return
-            }
+                    var resolvedItems: [RouteItem] = []
 
-            let startTarget: NavigationTarget =
-                .mapObject(startObject)
+                    shoppingList.forEach { itemName in
 
-            let destinations: [MultiDestinationTarget] =
-                resolvedObjects
-                    .dropFirst()
-                    .map {
-                        .single(.mapObject($0))
+                        if let object = objects.first(where: {
+                            $0.name.caseInsensitiveCompare(itemName) == .orderedSame
+                        }) {
+
+                            resolvedItems.append(
+                                .mapObject(object)
+                            )
+
+                            return
+                        }
+
+                        if let space = spaces.first(where: {
+                            $0.name.caseInsensitiveCompare(itemName) == .orderedSame
+                        }) {
+
+                            resolvedItems.append(
+                                .space(space)
+                            )
+
+                            return
+                        }
+
+                        print("Could not resolve:", itemName)
                     }
 
-            self.mapView.mapData.getDirectionsMultiDestination(
-                from: startTarget,
-                to: destinations
-            ) { [weak self] result in
-
-                guard let self else { return }
-
-                switch result {
-
-                case .success(let directionsList):
-
-                    let pathOption = AddPathOptions(
-                        accentColor: "#ffffff",
-                        animateArrowsOnPath: true,
-                        animateDrawing: true,
-                        color: "#4b90e2",
-                        displayArrowsOnPath: true
+                    let optimizedItems = await self.optimizeRoute(
+                        items: resolvedItems
                     )
 
-                    let options = NavigationOptions(
-                        pathOptions: pathOption
-                    )
+                    print("===== OPTIMIZED =====")
 
-                    guard let directionsList, !directionsList.isEmpty else {
-                        print("No Directions")
+                    optimizedItems.forEach {
+                        print($0.name)
+                    }
+
+                    // First Item
+                    guard let startItem = optimizedItems.first else {
                         return
                     }
 
-                    self.mapView.navigation.draw(
-                        directions: directionsList,
-                        options: options
-                    ) { drawResult in
+                    let startTarget = self.navigationTarget(for: startItem)
 
-                        print("Path Drawn:", drawResult)
+                    let destinations: [MultiDestinationTarget] =
+                        optimizedItems
+                            .dropFirst()
+                            .map {
+                                .single(
+                                    self.navigationTarget(for: $0)
+                                )
+                            }
+
+                    self.mapView.mapData.getDirectionsMultiDestination(
+                        from: startTarget,
+                        to: destinations
+                    ) { result in
+
+                        switch result {
+
+                        case .success(let directions):
+
+                            let pathOption = AddPathOptions(
+                                accentColor: "#ffffff",
+                                animateArrowsOnPath: true,
+                                animateDrawing: true,
+                                color: "#4b90e2",
+                                displayArrowsOnPath: true
+                            )
+
+                            let options = NavigationOptions(
+                                pathOptions: pathOption
+                            )
+
+                            guard let directions, !directions.isEmpty else {
+                                print("No directions to draw")
+                                return
+                            }
+
+                            self.mapView.navigation.draw(
+                                directions: directions,
+                                options: options
+                            ) { drawResult in
+
+                                print(
+                                    "Path Drawn:",
+                                    drawResult
+                                )
+                            }
+
+                        case .failure(let error):
+                            print(error)
+                        }
                     }
-
-                case .failure(let error):
-                    print(error)
                 }
             }
         }

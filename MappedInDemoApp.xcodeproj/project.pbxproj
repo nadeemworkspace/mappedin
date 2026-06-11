@@ -14,6 +14,7 @@
 		30B6E9FE2FD9A6FA006837A3 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 30B6E9F32FD9A6FA006837A3 /* LaunchScreen.storyboard */; };
 		30B6E9FF2FD9A6FA006837A3 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 30B6E9F52FD9A6FA006837A3 /* Main.storyboard */; };
 		30B6EA022FD9A717006837A3 /* Mappedin in Frameworks */ = {isa = PBXBuildFile; productRef = 30B6EA012FD9A717006837A3 /* Mappedin */; };
+		30B6EA3E2FDAC314006837A3 /* RouteItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B6EA3D2FDAC314006837A3 /* RouteItem.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +26,7 @@
 		30B6E9F42FD9A6FA006837A3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		30B6E9F62FD9A6FA006837A3 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		30B6E9F72FD9A6FA006837A3 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		30B6EA3D2FDAC314006837A3 /* RouteItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteItem.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +63,7 @@
 				30B6E9EF2FD9A6FA006837A3 /* AppDelegate.swift */,
 				30B6E9F62FD9A6FA006837A3 /* SceneDelegate.swift */,
 				30B6E9F72FD9A6FA006837A3 /* ViewController.swift */,
+				30B6EA3D2FDAC314006837A3 /* RouteItem.swift */,
 				30B6E9F02FD9A6FA006837A3 /* Assets.xcassets */,
 				30B6E9F12FD9A6FA006837A3 /* Info.plist */,
 				30B6E9F32FD9A6FA006837A3 /* LaunchScreen.storyboard */,
@@ -147,6 +150,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				30B6EA3E2FDAC314006837A3 /* RouteItem.swift in Sources */,
 				30B6E9F92FD9A6FA006837A3 /* AppDelegate.swift in Sources */,
 				30B6E9FA2FD9A6FA006837A3 /* SceneDelegate.swift in Sources */,
 				30B6E9FB2FD9A6FA006837A3 /* ViewController.swift in Sources */,
