@@ -53,8 +53,8 @@ class ViewController: UIViewController {
 
     func onMapReady() {
         renderSpaces()
+        renderMapObjects()
         renderPOIs()
-        renderLocationProfiles()
         renderAnnotations()
         testNavigation()
         enableClickEvents()
@@ -80,18 +80,32 @@ class ViewController: UIViewController {
     }
 
     func renderSpaces() {
-        mapView.mapData.getByType(.space) { (result: Result<[Space], Error>) in
+        mapView.mapData.getByType(.space) { [weak self] (result: Result<[Space], Error>) in
             switch result {
             case .success(let spaces):
                 spaces.forEach { space in
+                    dump(space)
                     guard !space.name.isEmpty else { return }
-                    self.mapView.labels.add(
-                        target: space,
-                        text: space.name,
-                    )
+                    let appearance = LabelAppearance(icon: space.images.first?.url ?? "")
+                    self?.mapView.labels.add(target: space, text: space.name,  options: AddLabelOptions(labelAppearance: appearance, interactive: true))
                 }
             case .failure(let error):
-                print("Error mapping spaces: \(error.localizedDescription)")
+                print(error)
+            }
+        }
+    }
+
+    func renderMapObjects() {
+        mapView.mapData.getByType(.mapObject) { [weak self] (result: Result<[MapObject], Error>) in
+            switch result {
+            case .success(let objects):
+                objects.forEach { obj in
+                    guard !obj.name.isEmpty else { return }
+                    let appearance = LabelAppearance(icon: obj.images.first?.url ?? "")
+                    self?.mapView.labels.add(target: obj, text: obj.name, options: AddLabelOptions(labelAppearance: appearance, interactive: true))
+                }
+            case .failure(let error):
+                print(error.localizedDescription)
             }
         }
     }
@@ -113,53 +127,12 @@ class ViewController: UIViewController {
         }
     }
 
-    func renderLocationProfiles() {
-        mapView.mapData.getByType(.mapObject) { (objectResult: Result<[MapObject], Error>) in
-            guard case .success(let mapObjects) = objectResult else {
-                return
-            }
-            let objectLookup = Dictionary(uniqueKeysWithValues: mapObjects.map { ($0.id, $0) })
-
-            self.mapView.mapData.getByType(.locationProfile) { (profileResult: Result<[LocationProfile], Error>) in
-
-                guard case .success(let profiles) = profileResult else {
-                    return
-                }
-
-                profiles.forEach { profile in
-                    guard !profile.name.isEmpty else {
-                        return
-                    }
-                    guard let mapObjectId = profile.mapObjects.first else {
-                        return
-                    }
-                    guard let mapObject = objectLookup[mapObjectId] else {
-                        return
-                    }
-                    let html = """
-                        <div style="
-                            color: green;
-                            font-size: 12px;
-                            font-weight: 600;
-                            white-space: nowrap;
-                        ">
-                            \(profile.name)
-                        </div>
-                        """
-                    self.mapView.markers.add(
-                        target: mapObject.center,
-                        html: html
-                    )
-                }
-            }
-        }
-    }
-
     func renderAnnotations() {
         mapView.mapData.getByType(.annotation) { [weak self] (result: Result<[Annotation], Error>) in
             guard let self = self else { return }
             if case .success(let annotations) = result {
-                let opts = AddMarkerOptions(interactive: .True,
+                let opts = AddMarkerOptions(
+                    interactive: .True,
                     placement: .single(.center),
                     rank: .tier(.high)
                 )
